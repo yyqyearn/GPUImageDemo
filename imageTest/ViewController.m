@@ -15,7 +15,10 @@ typedef NS_ENUM(NSInteger,FilterType) {
 };
 
 @interface ViewController ()
+@property (weak, nonatomic) IBOutlet UISlider *slider;
 @property (weak, nonatomic) IBOutlet UIImageView *bgImageView;
+@property (weak, nonatomic) UIButton *selectedBtn;
+
 
 /** 图片输出View */
 @property (weak, nonatomic) IBOutlet GPUImageView *outImageView;
@@ -34,6 +37,7 @@ typedef NS_ENUM(NSInteger,FilterType) {
 
 /** 当前所使用的滤镜类型 */
 @property (assign, nonatomic) FilterType filterType;
+
 
 @end
 
@@ -70,22 +74,26 @@ typedef NS_ENUM(NSInteger,FilterType) {
     
 }
 
-- (IBAction)brightClick:(UIButton *)sender {
-    NSLog(@"点击了bri");
-    self.filterType = FilterTypeBrightness;
-    self.filterTool = self.filtersArray[self.filterType];
-//    [self.sourceImage processImage];
+- (IBAction)filterClick:(UIButton *)sender {
+    self.selectedBtn.selected = NO;
+    sender.selected = YES;
+    self.selectedBtn = sender;
+    self.slider.enabled = YES;
     
-}
-- (IBAction)contrast:(UIButton *)sender {
-    NSLog(@"点击了bri");
-    self.filterType = FilterTypeContrast;
-    self.filterTool = self.filtersArray[self.filterType];
-//    [self.sourceImage processImage];
-    
+    if (sender.tag == FilterTypeBrightness) {
+        NSLog(@"选中了了Brightness按钮");
 
-    
+        self.filterType = FilterTypeBrightness;
+        self.filterTool = self.filtersArray[self.filterType];
+    }else if (sender.tag == FilterTypeContrast){
+        NSLog(@"选中了了Contrast按钮");
+        
+        self.filterType = FilterTypeContrast;
+        self.filterTool = self.filtersArray[self.filterType];
+    }
+
 }
+
 - (IBAction)sliderChange:(UISlider *)sender {
     if (self.filterType == FilterTypeBrightness) {
         [(GPUImageBrightnessFilter*)self.filterTool setBrightness:sender.value];
@@ -99,12 +107,15 @@ typedef NS_ENUM(NSInteger,FilterType) {
 
 
 - (IBAction)saveClick:(UIButton *)sender {
+    if (!sender.tag) {
+        NSLog(@"点击了取消");
+        UIImage *image = [UIImage imageNamed:@"IMG_2041"];
+        self.bgImageView.image = image;
+        return;
+    }
     NSLog(@"点击了保存");
     
-    for (GPUImageFilter *filter in self.filtersArray) {
-        [filter useNextFrameForImageCapture];
-    }
-//    [self.filterTool useNextFrameForImageCapture];
+    [self.filterTool useNextFrameForImageCapture];
     [self.sourceImage processImage];
     UIImage *image = [self.pipeLine currentFilteredFrame];
     if (image) {
@@ -112,8 +123,6 @@ typedef NS_ENUM(NSInteger,FilterType) {
     }else{
         NSLog(@"没有图片");
     }
-    [self.outImageView removeFromSuperview];
-    self.outImageView = nil;
 
 }
 
