@@ -7,8 +7,33 @@
 //
 
 #import "ViewController.h"
+#import "GPUImage.h"
+
+typedef NS_ENUM(NSInteger,FilterType) {
+    FilterTypeBrightness = 0,
+    FilterTypeContrast = 1,
+};
 
 @interface ViewController ()
+@property (weak, nonatomic) IBOutlet UIImageView *bgImageView;
+
+/** 图片输出View */
+@property (weak, nonatomic) IBOutlet GPUImageView *outImageView;
+
+/** 加工图片 */
+@property (strong, nonatomic) GPUImagePicture *sourceImage;
+
+/** 图片加工通道 */
+@property (strong, nonatomic) GPUImageFilterPipeline *pipeLine;
+
+/** 当前所用滤镜 */
+@property (strong, nonatomic) GPUImageOutput *filterTool;
+
+/** 所有滤镜集合 */
+@property (strong, nonatomic) NSArray *filtersArray;
+
+/** 当前所使用的滤镜类型 */
+@property (assign, nonatomic) FilterType filterType;
 
 @end
 
@@ -16,12 +41,81 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    // Do any additional setup after loading the view, typically from a nib.
+    [self setupFilters];
 }
 
-- (void)didReceiveMemoryWarning {
-    [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
+- (void)setupFilters
+{
+    //1.存入图片
+    UIImage *image = [UIImage imageNamed:@"IMG_2041"];
+    self.sourceImage = [[GPUImagePicture alloc]initWithImage:image];
+    [self.sourceImage addTarget:self.outImageView];
+    
+    //2.创建滤镜
+    self.filterTool = [[GPUImageOutput alloc]init];
+    [self.filterTool addTarget:self.outImageView];
+    
+    GPUImageBrightnessFilter *briFilter = [[GPUImageBrightnessFilter alloc]init];
+    [briFilter addTarget:self.outImageView];
+    GPUImageContrastFilter *conFilter = [[GPUImageContrastFilter alloc]init];
+    [conFilter addTarget:self.outImageView];
+    
+    self.filtersArray = @[briFilter,conFilter];
+    
+    //3.设置通道
+    self.pipeLine = [[GPUImageFilterPipeline alloc]initWithOrderedFilters:self.filtersArray input:self.sourceImage output:self.outImageView];
+   
+    //4.初始化输出
+    [self.sourceImage processImage];
+    
 }
+
+- (IBAction)brightClick:(UIButton *)sender {
+    NSLog(@"点击了bri");
+    self.filterType = FilterTypeBrightness;
+    self.filterTool = self.filtersArray[self.filterType];
+//    [self.sourceImage processImage];
+    
+}
+- (IBAction)contrast:(UIButton *)sender {
+    NSLog(@"点击了bri");
+    self.filterType = FilterTypeContrast;
+    self.filterTool = self.filtersArray[self.filterType];
+//    [self.sourceImage processImage];
+    
+
+    
+}
+- (IBAction)sliderChange:(UISlider *)sender {
+    if (self.filterType == FilterTypeBrightness) {
+        [(GPUImageBrightnessFilter*)self.filterTool setBrightness:sender.value];
+        [self.sourceImage processImage];
+    }else if (self.filterType == FilterTypeContrast){
+        [(GPUImageContrastFilter*)self.filterTool setContrast:sender.value];
+        [self.sourceImage processImage];
+    }
+}
+
+
+
+- (IBAction)saveClick:(UIButton *)sender {
+    NSLog(@"点击了保存");
+    
+    for (GPUImageFilter *filter in self.filtersArray) {
+        [filter useNextFrameForImageCapture];
+    }
+//    [self.filterTool useNextFrameForImageCapture];
+    [self.sourceImage processImage];
+    UIImage *image = [self.pipeLine currentFilteredFrame];
+    if (image) {
+        self.bgImageView.image = image;
+    }else{
+        NSLog(@"没有图片");
+    }
+    [self.outImageView removeFromSuperview];
+    self.outImageView = nil;
+
+}
+
 
 @end
