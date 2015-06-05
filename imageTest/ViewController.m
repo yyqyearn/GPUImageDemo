@@ -74,6 +74,9 @@ typedef NS_ENUM(NSInteger,FilterType) {
     
 }
 
+/**
+ *  选中滤镜
+ */
 - (IBAction)filterClick:(UIButton *)sender {
     self.selectedBtn.selected = NO;
     sender.selected = YES;
